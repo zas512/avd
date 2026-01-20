@@ -2,7 +2,7 @@ name: Daily Auto Commit
 
 on:
   schedule:
-    - cron: '0 0,4,8,12 * * *'
+    - cron: '0 0 * * *'   # once per day
   workflow_dispatch:
 
 jobs:
@@ -11,17 +11,25 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Update activity log
+      - name: Random commit count
+        id: random
         run: |
-          echo "Auto-commit on $(date)" >> activity.log
+          COUNT=$((RANDOM % 4))   # 0–3 commits
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
 
-      - name: Commit and push changes
+      - name: Make random commits
+        if: steps.random.outputs.count != '0'
         run: |
           git config --global user.name "zas512"
           git config --global user.email "zainalis.914@gmail.com"
-          git add activity.log
-          git commit -m "status check"
+
+          for i in $(seq 1 ${{ steps.random.outputs.count }}); do
+            echo "Auto commit $i on $(date)" >> activity.log
+            git add activity.log
+            git commit -m "status check #$i"
+            sleep $((RANDOM % 300))  # random delay (0–5 min)
+          done
+
           git push
